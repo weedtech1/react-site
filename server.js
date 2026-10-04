@@ -30,10 +30,10 @@ setInterval(() => {
   }
 }, 60_000).unref();
 
-const CHANNEL_RE = /^https:\/\/whatsapp\.com\/channel\/[A-Za-z0-9_-]+\/\d+$/;
+const CHANNEL_RE = /^https?:\/\/(www\.)?whatsapp\.com\/channel\/[A-Za-z0-9_-]+\/\d+$/;
 
 app.get("/react", limiter, async (req, res) => {
-  const link = String(req.query.link || "").trim();
+  const link = String(req.query.link || "").trim().split("?")[0];
   const emoji = String(req.query.emoji || "").trim();
 
   if (!CHANNEL_RE.test(link)) {
