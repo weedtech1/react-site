@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reyaji sou yon pòs chanèl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3f0e8;
+    --ink: #14282b;
+    --pine: #0f5c4d;
+    --coral: #e8553d;
+    --line: #cfc9b8;
+    --ok: #0f7a4a;
+    --bad: #b3261e;
+    --font-head: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+    --font-body: "Figtree", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: var(--paper); color: var(--ink);
+    font-family: var(--font-body); font-size: 1.05rem; line-height: 1.5;
+    display: grid; place-items: center; padding: 1.25rem;
+  }
+  main { width: min(34rem, 100%); }
+  h1 {
+    font-family: var(--font-head); font-weight: 800;
+    font-size: clamp(2.2rem, 8vw, 3.4rem); line-height: 1; letter-spacing: -0.03em;
+    margin: 0 0 .6rem;
+  }
+  p.lead { margin: 0 0 1.75rem; max-width: 30rem; }
+  label, legend { font-weight: 600; display: block; margin-bottom: .45rem; }
+  fieldset { border: 0; padding: 0; margin: 0 0 1.25rem; }
+  input[type="url"] {
+    width: 100%; padding: .85rem 1rem; font: inherit; color: inherit;
+    background: #fff; border: 2px solid var(--line); border-radius: 10px;
+    margin-bottom: 1.25rem;
+  }
+  input[type="url"]:focus-visible, button:focus-visible, .emoji input:focus-visible + span {
+    outline: 3px solid var(--coral); outline-offset: 2px;
+  }
+  .emojis { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .emoji input { position: absolute; opacity: 0; pointer-events: none; }
+  .emoji span {
+    display: grid; place-items: center; width: 3.4rem; height: 3.4rem;
+    font-size: 1.7rem; background: #fff; border: 2px solid var(--line);
+    border-radius: 50%; cursor: pointer; transition: transform .12s, border-color .12s, background .12s;
+  }
+  .emoji span:hover { transform: translateY(-2px); }
+  .emoji input:checked + span { border-color: var(--pine); background: #dcefe8; transform: scale(1.08); }
+  button.send {
+    width: 100%; padding: 1rem; font: inherit; font-weight: 700; font-size: 1.1rem;
+    color: #fff; background: var(--pine); border: 0; border-radius: 10px; cursor: pointer;
+    transition: background .15s;
+  }
+  button.send:hover:not(:disabled) { background: #0b4a3e; }
+  button.send:disabled { opacity: .6; cursor: wait; }
+  #status { min-height: 1.6rem; margin-top: 1rem; font-weight: 500; }
+  #status.ok { color: var(--ok); }
+  #status.bad { color: var(--bad); }
+  small { display: block; margin-top: 1.5rem; color: #4d5d5f; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Reyaji sou yon pòs chanèl</h1>
+  <p class="lead">Kole lyen pòs la, chwazi yon emoji, epi voye reyaksyon an.</p>
+
+  <form id="f" novalidate>
+    <label for="link">Lyen pòs la</label>
+    <input id="link" type="url" inputmode="url" autocomplete="off"
+           placeholder="https://whatsapp.com/channel/XXXX/123" required>
+
+    <fieldset>
+      <legend>Emoji</legend>
+      <div class="emojis" id="emojis"></div>
+    </fieldset>
+
+    <button class="send" id="btn" type="submit">Voye reyaksyon an</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </form>
+
+  <small>Lyen an dwe gen fòma <code>whatsapp.com/channel/…/nimewo-pòs</code>. Limit: 5 demann pa minit.</small>
+</main>
+
+<script>
+  const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "🎉"];
+  const box = document.getElementById("emojis");
+  EMOJIS.forEach((e, i) => {
+    const l = document.createElement("label");
+    l.className = "emoji";
+    l.innerHTML = `<input type="radio" name="emoji" value="${e}" ${i === 0 ? "checked" : ""}><span>${e}</span>`;
+    box.appendChild(l);
+  });
+
+  const f = document.getElementById("f");
+  const btn = document.getElementById("btn");
+  const status = document.getElementById("status");
+
+  function show(msg, cls) { status.textContent = msg; status.className = cls || ""; }
+
+  f.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const link = document.getElementById("link").value.trim();
+    const emoji = f.emoji.value;
+    if (!link) return show("Kole lyen pòs la anvan.", "bad");
+
+    btn.disabled = true;
+    show("Ap voye…");
+    try {
+      const r = await fetch(`/react?link=${encodeURIComponent(link)}&emoji=${encodeURIComponent(emoji)}`);
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) show(`Reyaksyon ${emoji} voye.`, "ok");
+      else show(data.error || data.message || "Gen yon erè. Eseye ankò.", "bad");
+    } catch {
+      show("Pa gen koneksyon ak sèvè a.", "bad");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
